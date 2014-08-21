@@ -1,0 +1,65 @@
+apply plugin: 'android'
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion '19.0.3'
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 19
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            ndk {
+                moduleName "CMCC_PRINT_BOSSTUN"
+                ldLibs "log"
+                abiFilters "armeabi", "armeabi-v7a", "x86"
+            }
+            runProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            jniDebugBuild false
+        }
+        debug {
+            ndk {
+                moduleName "CMCC_PRINT_BOSSTUN"
+                ldLibs "log"
+                abiFilters "armeabi", "armeabi-v7a", "x86"
+            }
+        }
+        productFlavors {
+            x86 {
+                versionCode Integer.parseInt("6" + defaultConfig.versionCode)
+                ndk {
+                    abiFilter "x86"
+                }
+            }
+            mips {
+                versionCode Integer.parseInt("4" + defaultConfig.versionCode)
+                ndk {
+                    abiFilter "mips"
+                }
+            }
+            armv7 {
+                versionCode Integer.parseInt("2" + defaultConfig.versionCode)
+                ndk {
+                    abiFilter "armeabi-v7a"
+                }
+            }
+            arm {
+                versionCode Integer.parseInt("1" + defaultConfig.versionCode)
+                ndk {
+                    abiFilters "armeabi", "armeabi-v7a"
+                }
+            }
+            fat
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:19.+'
+}
+
