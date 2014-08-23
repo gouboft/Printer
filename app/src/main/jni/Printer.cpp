@@ -38,7 +38,7 @@ namespace android
 {
 const char *gNativePrinterClassName = "com/cmcc/printer/Printer";
 static int fd;
-static char PrinterDev[] = "/dev/ttyS0";
+static char PrinterDev[] = "/dev/ttyS2";
 static uint8_t Version[] = {0,0,1};
 
 # define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
@@ -51,6 +51,11 @@ static uint8_t Version[] = {0,0,1};
 #define PARAM_RANGE_ERR         2004
 #define PARAM_FORMAT_ERR        2005
 #define LACKING_PAPER           2006
+
+#define CMD_INIT                "\x1B\x40"
+#define CMD_STATUS              "\x1d\x72\x31"
+#define CMD_RT_STATUS           "\x10\x04\x01\x10\x04\x02\x10\x04\x03\x10\x04\x04"
+
 
 static speed_t getBaudrate(int baudrate)
 {
@@ -85,7 +90,7 @@ static int initSerialPort(char *path, int baudrate, int flags)
     /* Opening device */
     {
         jboolean iscopy;
-        ALOGD("Opening serial port %s with flags 0x%x", path, O_RDWR | flags);
+        ALOGD("Opening serial port %s with flags 0x%x", path, O_RDWR | O_NOCTTY | flags);
         if (fd > 0)
             close(fd);
         fd = open(path, O_RDWR | flags);
@@ -127,13 +132,13 @@ static int initSerialPort(char *path, int baudrate, int flags)
 static int Jni_openPrinter(JNIEnv* e, jobject o, jint printerType, jstring deviceId, jstring password)
 {
     int ret;
-    if (printerType != 4){
+    if (printerType != 4) {
         ALOGE("printerType error, this driver is for internel printer!");
         return FIND_PRINTER_FAIL;
     }
     
 
-    ret = initSerialPort(PrinterDev, 115200, 0);
+    ret = initSerialPort(PrinterDev, 19200, 0);
     if (ret < 0) {
         ALOGE("Initialize serial port fail!");
         return CONNECT_PRINTER_FAIL;
@@ -163,12 +168,12 @@ static int Jni_getPrinterVersion(JNIEnv* e, jobject o, jbyteArray version)
 
 static int Jni_initialPrinter(JNIEnv* e, jobject o)
 {
-    char buf[21];
-    
+    char buf[26];
+
     //reset printer
     buf[0] = 0x1B;
     buf[1] = 0x40;
-    
+
     //set zoon in to 1
     buf[2] = 0x1D;
     buf[3] = 0x21;
@@ -205,20 +210,25 @@ static int Jni_initialPrinter(JNIEnv* e, jobject o)
     //set underline: Regular
     buf[15] = 0x1B;
     buf[16] = 0x2D;
-    buf[17] = 0x48;
+    buf[17] = 0x00;
     
     //set inverse: Regular
     buf[18] = 0x1D;
     buf[19] = 0x42;
     buf[20] = 0x00;
 
-    if(fd > 0)
-        write(fd, buf, sizeof(buf));
-    else {
+    //open chinese charactor
+    buf[21] = 0x1C;
+    buf[22] = 0x26;
+
+
+    if(fd > 0) {
+        int ret = write(fd, buf, sizeof(buf));
+    } else {
         ALOGE("printer device not open!");
         return FIND_PRINTER_FAIL;
     }
- 
+
     return SUCCESS;
 }
 
@@ -412,11 +422,11 @@ static int Jni_print(JNIEnv* e, jobject o, jstring content)
     char *printContent = (char *) e->GetStringUTFChars(content, NULL);
     int length = (int) e->GetStringUTFLength(content);
 
-    ALOGD("String Content: %s", printContent);
+    ALOGD("String Content: %s, %d", printContent, length);
 
-    if(fd > 0)
+    if(fd > 0) {
         write(fd, printContent, length);
-    else {
+    } else {
         ALOGE("printer device not open!");
         return FIND_PRINTER_FAIL;
     }

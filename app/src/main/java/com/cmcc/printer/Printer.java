@@ -2,6 +2,7 @@ package com.cmcc.printer;
 
 
 import android.app.Activity;
+import android.text.Editable;
 import android.util.Log;
 import android.os.Bundle;
 import android.view.Menu;
@@ -10,6 +11,8 @@ import android.view.View;
 import android.widget.Button;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
+
+import java.io.UnsupportedEncodingException;
 
 
 public class Printer extends Activity {
@@ -39,6 +42,9 @@ public class Printer extends Activity {
         initButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
                 openPrinter(4, null, null);
+                initialPrinter();
+
+                //get software version
                 version = new byte[3];
                 getPrinterVersion(version);
                 Log.d(TAG, "JNI Version: " + version[0] + version[1] + version[2]);
@@ -47,7 +53,7 @@ public class Printer extends Activity {
 
         testButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                byte bytes[] = {0x1B,0x40,0x12,0x54};
+                byte bytes[] = {0x12,0x54};
                 String string = new String(bytes);
                 Log.d(TAG, "Print the Test Page, Command: " + string);
                 print(string);
@@ -62,8 +68,17 @@ public class Printer extends Activity {
 
         printButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                String string = text.getText().toString();
-                print(string);
+                Editable editable = text.getText();
+
+                if (editable != null) {
+                    try {
+                        byte[] bytes = editable.toString().getBytes();
+                        String gbk = new String(bytes, "GB2312");
+                        print(gbk);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         });
     }
@@ -104,5 +119,6 @@ public class Printer extends Activity {
     private native int print(String content);
     private native int printHTML(String content);
 
+    private native int getState();
 }
 
